@@ -11,7 +11,7 @@ using Serilog.Sinks.SystemConsole.Themes;
 
 namespace Conduit
 {
-    public static class StartupExtensions
+    public static class ProgramExtensions
     {
         public static void AddJwt(this IServiceCollection services)
         {
@@ -57,7 +57,7 @@ namespace Conduit
                             var token = context.HttpContext.Request.Headers["Authorization"];
                             if (token.Count > 0 && token[0].StartsWith("Token ", StringComparison.OrdinalIgnoreCase))
                             {
-                                context.Token = token[0].Substring("Token ".Length).Trim();
+                                context.Token = token[0]["Token ".Length..].Trim();
                             }
 
                             return Task.CompletedTask;
@@ -65,6 +65,7 @@ namespace Conduit
                     };
 
                 });
+            services.AddAuthorization();
         }
 
         public static void AddSerilogLogging(this ILoggerFactory loggerFactory)

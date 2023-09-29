@@ -31,32 +31,21 @@ namespace Conduit.Features.Articles
 
         public class CommandValidator : AbstractValidator<Command>
         {
-            public CommandValidator()
-            {
-                RuleFor(x => x.Model.Article).NotNull();
-            }
+            public CommandValidator() => RuleFor(x => x.Model.Article).NotNull();
         }
 
         public class Handler : IRequestHandler<Command, ArticleEnvelope>
         {
             private readonly ConduitContext _context;
 
-            public Handler(ConduitContext context)
-            {
-                _context = context;
-            }
+            public Handler(ConduitContext context) => _context = context;
 
             public async Task<ArticleEnvelope> Handle(Command message, CancellationToken cancellationToken)
             {
                 var article = await _context.Articles
                     .Include(x => x.ArticleTags)    // include also the article tags since they also need to be updated
                     .Where(x => x.Slug == message.Slug)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (article == null)
-                {
-                    throw new RestException(HttpStatusCode.NotFound, new { Article = Constants.NOT_FOUND });
-                }
+                    .FirstOrDefaultAsync(cancellationToken) ?? throw new RestException(HttpStatusCode.NotFound, new { Article = Constants.NOT_FOUND });
 
                 article.Description = message.Model.Article.Description ?? article.Description;
                 article.Body = message.Model.Article.Body ?? article.Body;
@@ -94,7 +83,7 @@ namespace Conduit.Features.Articles
             /// <summary>
             /// check which article tags need to be added
             /// </summary>
-            static List<ArticleTag> GetArticleTagsToCreate(Article article, IEnumerable<string> articleTagList)
+            internal static List<ArticleTag> GetArticleTagsToCreate(Article article, IEnumerable<string> articleTagList)
             {
                 var articleTagsToCreate = new List<ArticleTag>();
                 foreach (var tag in articleTagList)
@@ -119,7 +108,7 @@ namespace Conduit.Features.Articles
             /// <summary>
             /// check which article tags need to be deleted
             /// </summary>
-            static List<ArticleTag> GetArticleTagsToDelete(Article article, IEnumerable<string> articleTagList)
+            internal static List<ArticleTag> GetArticleTagsToDelete(Article article, IEnumerable<string> articleTagList)
             {
                 var articleTagsToDelete = new List<ArticleTag>();
                 foreach (var tag in article.ArticleTags)

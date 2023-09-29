@@ -18,10 +18,7 @@ namespace Conduit.Features.Comments
         public record Model(CommentData Comment) : IRequest<CommentEnvelope>;
         public class CommandValidator : AbstractValidator<Command>
         {
-            public CommandValidator()
-            {
-                RuleFor(x => x.Model.Comment.Body).NotEmpty();
-            }
+            public CommandValidator() => RuleFor(x => x.Model.Comment.Body).NotEmpty();
         }
 
         public class Handler : IRequestHandler<Command, CommentEnvelope>
@@ -39,12 +36,7 @@ namespace Conduit.Features.Comments
             {
                 var article = await _context.Articles
                     .Include(x => x.Comments)
-                    .FirstOrDefaultAsync(x => x.Slug == message.Slug, cancellationToken);
-
-                if (article == null)
-                {
-                    throw new RestException(HttpStatusCode.NotFound, new { Article = Constants.NOT_FOUND });
-                }
+                    .FirstOrDefaultAsync(x => x.Slug == message.Slug, cancellationToken) ?? throw new RestException(HttpStatusCode.NotFound, new { Article = Constants.NOT_FOUND });
 
                 var author = await _context.Persons.FirstAsync(x => x.Username == _currentUserAccessor.GetCurrentUsername(), cancellationToken);
 

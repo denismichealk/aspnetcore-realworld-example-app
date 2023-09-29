@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Conduit.Domain;
 using Conduit.Infrastructure;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +24,7 @@ namespace Conduit.Features.Articles
 
             public async Task<ArticlesEnvelope> Handle(Query message, CancellationToken cancellationToken)
             {
-                IQueryable<Article> queryable = _context.Articles.GetAllData();
+                var queryable = _context.Articles.GetAllData();
 
                 if (message.IsFeed && _currentUserAccessor.GetCurrentUsername() != null)
                 {

@@ -18,10 +18,7 @@ namespace Conduit.Features.Users
 
         public class QueryValidator : AbstractValidator<Query>
         {
-            public QueryValidator()
-            {
-                RuleFor(x => x.Username).NotNull().NotEmpty();
-            }
+            public QueryValidator() => RuleFor(x => x.Username).NotNull().NotEmpty();
         }
 
         public class QueryHandler : IRequestHandler<Query, UserEnvelope>
@@ -41,12 +38,7 @@ namespace Conduit.Features.Users
             {
                 var person = await _context.Persons
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Username == message.Username, cancellationToken);
-
-                if (person == null)
-                {
-                    throw new RestException(HttpStatusCode.NotFound, new { User = Constants.NOT_FOUND });
-                }
+                    .FirstOrDefaultAsync(x => x.Username == message.Username, cancellationToken) ?? throw new RestException(HttpStatusCode.NotFound, new { User = Constants.NOT_FOUND });
 
                 var user = _mapper.Map<Domain.Person, User>(person);
                 user.Token = _jwtTokenGenerator.CreateToken(person.Username ?? throw new InvalidOperationException());

@@ -17,10 +17,7 @@ namespace Conduit.Features.Followers
 
         public class CommandValidator : AbstractValidator<Command>
         {
-            public CommandValidator()
-            {
-                DefaultValidatorExtensions.NotNull(RuleFor(x => x.Username)).NotEmpty();
-            }
+            public CommandValidator() => DefaultValidatorExtensions.NotNull(RuleFor(x => x.Username)).NotEmpty();
         }
 
         public class QueryHandler : IRequestHandler<Command, ProfileEnvelope>
@@ -38,12 +35,7 @@ namespace Conduit.Features.Followers
 
             public async Task<ProfileEnvelope> Handle(Command message, CancellationToken cancellationToken)
             {
-                var target = await _context.Persons.FirstOrDefaultAsync(x => x.Username == message.Username, cancellationToken);
-
-                if (target == null)
-                {
-                    throw new RestException(HttpStatusCode.NotFound, new { User = Constants.NOT_FOUND });
-                }
+                var target = await _context.Persons.FirstOrDefaultAsync(x => x.Username == message.Username, cancellationToken) ?? throw new RestException(HttpStatusCode.NotFound, new { User = Constants.NOT_FOUND });
 
                 var observer = await _context.Persons.FirstOrDefaultAsync(x => x.Username == _currentUserAccessor.GetCurrentUsername(), cancellationToken);
 

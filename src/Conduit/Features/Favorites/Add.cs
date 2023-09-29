@@ -17,10 +17,7 @@ namespace Conduit.Features.Favorites
 
         public class CommandValidator : AbstractValidator<Command>
         {
-            public CommandValidator()
-            {
-                DefaultValidatorExtensions.NotNull(RuleFor(x => x.Slug)).NotEmpty();
-            }
+            public CommandValidator() => DefaultValidatorExtensions.NotNull(RuleFor(x => x.Slug)).NotEmpty();
         }
 
         public class QueryHandler : IRequestHandler<Command, ArticleEnvelope>
@@ -36,12 +33,7 @@ namespace Conduit.Features.Favorites
 
             public async Task<ArticleEnvelope> Handle(Command message, CancellationToken cancellationToken)
             {
-                var article = await _context.Articles.FirstOrDefaultAsync(x => x.Slug == message.Slug, cancellationToken);
-
-                if (article == null)
-                {
-                    throw new RestException(HttpStatusCode.NotFound, new { Article = Constants.NOT_FOUND });
-                }
+                var article = await _context.Articles.FirstOrDefaultAsync(x => x.Slug == message.Slug, cancellationToken) ?? throw new RestException(HttpStatusCode.NotFound, new { Article = Constants.NOT_FOUND });
 
                 var person = await _context.Persons.FirstOrDefaultAsync(x => x.Username == _currentUserAccessor.GetCurrentUsername(), cancellationToken);
 
