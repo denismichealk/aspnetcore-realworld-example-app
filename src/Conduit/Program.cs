@@ -25,13 +25,17 @@ var defaultDatabaseProvider = "sqlite";
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
-builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(DBContextTransactionPipelineBehavior<,>));
+builder.Services.AddScoped(
+    typeof(IPipelineBehavior<,>),
+    typeof(DBContextTransactionPipelineBehavior<,>)
+);
 
 // take the connection string from the environment variable or use hard-coded database name
 var connectionString = defaultDatabaseConnectionSrting;
+
 // take the database provider from the environment variable or use hard-coded database provider
 var databaseProvider = defaultDatabaseProvider;
 
@@ -41,14 +45,18 @@ builder.Services.AddDbContext<ConduitContext>(options =>
     {
         options.UseSqlite(connectionString);
     }
-    else if (databaseProvider.ToLowerInvariant().Trim().Equals("sqlserver", StringComparison.Ordinal))
+    else if (
+        databaseProvider.ToLowerInvariant().Trim().Equals("sqlserver", StringComparison.Ordinal)
+    )
     {
         // only works in windows container
         options.UseSqlServer(connectionString);
     }
     else
     {
-        throw new InvalidOperationException("Database provider unknown. Please check configuration");
+        throw new InvalidOperationException(
+            "Database provider unknown. Please check configuration"
+        );
     }
 });
 
@@ -57,29 +65,39 @@ builder.Services.AddLocalization(x => x.ResourcesPath = "Resources");
 // Inject an implementation of ISwaggerProvider with defaulted settings applied
 builder.Services.AddSwaggerGen(x =>
 {
-    x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        In = ParameterLocation.Header,
-        Description = "Please insert JWT with Bearer into field",
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        BearerFormat = "JWT"
-    });
+    x.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            In = ParameterLocation.Header,
+            Description = "Please insert JWT with Bearer into field",
+            Name = "Authorization",
+            Type = SecuritySchemeType.ApiKey,
+            BearerFormat = "JWT"
+        }
+    );
 
     x.SupportNonNullableReferenceTypes();
 
-    x.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    x.AddSecurityRequirement(
+        new OpenApiSecurityRequirement()
+        {
+            {
+                new OpenApiSecurityScheme
                 {
-                    {   new OpenApiSecurityScheme
+                    Reference = new OpenApiReference
                     {
-                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                    },
-                    Array.Empty<string>()}
-                });
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        }
+    );
     x.SwaggerDoc("v1", new OpenApiInfo { Title = "RealWorld API", Version = "v1" });
     x.CustomSchemaIds(y => y.FullName);
     x.DocInclusionPredicate((version, apiDescription) => true);
-    //Deprecated
     //x.TagActionsBy(y => new List<string>()
     //            {
     //                y.GroupName ?? throw new InvalidOperationException()
@@ -88,16 +106,14 @@ builder.Services.AddSwaggerGen(x =>
 });
 
 builder.Services.AddCors();
-//TODO: Add Action Filters to Minimal Api
-//builder.Services.AddMvc(opt =>
-//{
-//    opt.Conventions.Add(new GroupByApiRootConvention());
-//    opt.Filters.Add(typeof(ValidatorActionFilter));
-//    opt.EnableEndpointRouting = false;
-//})
-//    .AddJsonOptions(opt => opt.JsonSerializerOptions.DefaultIgnoreCondition =
-//          System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull);
-
+builder.Services.AddMvc(opt =>
+{
+    opt.Conventions.Add(new GroupByApiRootConvention());
+    opt.Filters.Add(typeof(ValidationActionFilter));
+    opt.EnableEndpointRouting = false;
+})
+    .AddJsonOptions(opt => opt.JsonSerializerOptions.DefaultIgnoreCondition =
+          System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull);
 
 builder.Services.Configure<JsonOptions>(opt => opt.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull);
 builder.Services.AddFluentValidationAutoValidation();
@@ -120,11 +136,7 @@ app.Services.GetRequiredService<ILoggerFactory>().AddSerilogLogging();
 app.UseRouting();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-app.UseCors(builder =>
-    builder
-        .AllowAnyOrigin()
-        .AllowAnyHeader()
-        .AllowAnyMethod());
+app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
 app.UseAuthorization();
 app.UseAuthentication();
@@ -139,6 +151,7 @@ app.UseSwaggerUI(x => x.SwaggerEndpoint("/swagger/v1/swagger.json", "RealWorld A
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ConduitContext>().Database.EnsureCreated();
+    // use context
 }
 
 var root = app.MapGroup("");
@@ -152,4 +165,3 @@ root.RegisterTagsEndpoints().WithOpenApi();
 root.RegisterUsersEndpoint().WithOpenApi();
 
 app.Run();
-
