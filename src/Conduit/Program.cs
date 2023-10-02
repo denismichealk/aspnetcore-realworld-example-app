@@ -17,10 +17,10 @@ using FluentValidation;
 using Conduit.Infrastructure.Errors;
 using Microsoft.Extensions.Logging;
 
-// read database configuration (database provider + database connection) from environment variables
+//Read database configuration (database provider + database connection) from environment variables
 //Environment.GetEnvironmentVariable(DEFAULT_DATABASE_PROVIDER)
 //Environment.GetEnvironmentVariable(DEFAULT_DATABASE_CONNECTION_STRING)
-var defaultDatabaseConnectionSrting = "Filename=realworld.db";
+var defaultDatabaseConnectionString = "Filename=realworld.db";
 var defaultDatabaseProvider = "sqlite";
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,8 +35,7 @@ builder.Services.AddScoped(
 );
 
 // take the connection string from the environment variable or use hard-coded database name
-var connectionString = defaultDatabaseConnectionSrting;
-
+var connectionString = defaultDatabaseConnectionString;
 // take the database provider from the environment variable or use hard-coded database provider
 var databaseProvider = defaultDatabaseProvider;
 
@@ -162,3 +161,6 @@ using (var scope = app.Services.CreateScope())
     // use context
 }
 app.Run();
+
+// Make the implicit Program class public so test projects can access it
+public partial class Program { }

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Conduit.Features.Users;
 
@@ -17,7 +18,7 @@ public static class UserHelpers
         var command = new Create.Command(
             new Create.UserData()
             {
-                Email = "email",
+                Email = "email@" + new Random().Next(0, 1000).ToString() + ".com",
                 Password = "password",
                 Username = DefaultUserName
             }
