@@ -106,14 +106,8 @@ builder.Services.AddSwaggerGen(x =>
 });
 
 builder.Services.AddCors();
-builder.Services.AddMvc(opt =>
-{
-    opt.Conventions.Add(new GroupByApiRootConvention());
-    opt.Filters.Add(typeof(ValidationActionFilter));
-    opt.EnableEndpointRouting = false;
-})
-    .AddJsonOptions(opt => opt.JsonSerializerOptions.DefaultIgnoreCondition =
-          System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull);
+
+
 
 builder.Services.Configure<JsonOptions>(opt => opt.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull);
 builder.Services.AddFluentValidationAutoValidation();
