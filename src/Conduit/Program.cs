@@ -5,17 +5,17 @@ using Conduit.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using System;
 using Microsoft.OpenApi.Models;
+using System.Collections.Generic;
 using FluentValidation.AspNetCore;
+using FluentValidation;
 using Conduit.Infrastructure.Errors;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Http.Json;
-using Conduit.MinimalApi;
-using FluentValidation;
 
 // read database configuration (database provider + database connection) from environment variables
 //Environment.GetEnvironmentVariable(DEFAULT_DATABASE_PROVIDER)
@@ -25,8 +25,9 @@ var defaultDatabaseProvider = "sqlite";
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddMediatR(
+    cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly())
+);
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
 builder.Services.AddScoped(
     typeof(IPipelineBehavior<,>),
@@ -98,21 +99,33 @@ builder.Services.AddSwaggerGen(x =>
     x.SwaggerDoc("v1", new OpenApiInfo { Title = "RealWorld API", Version = "v1" });
     x.CustomSchemaIds(y => y.FullName);
     x.DocInclusionPredicate((version, apiDescription) => true);
-    //x.TagActionsBy(y => new List<string>()
-    //            {
-    //                y.GroupName ?? throw new InvalidOperationException()
-    //            });
+    x.TagActionsBy(
+        y => new List<string>() { y.GroupName ?? throw new InvalidOperationException() }
+    );
     x.CustomSchemaIds(s => s.FullName?.Replace("+", "."));
 });
 
 builder.Services.AddCors();
+builder.Services
+    .AddMvc(opt =>
+    {
+        opt.Conventions.Add(new GroupByApiRootConvention());
+        opt.Filters.Add(typeof(ValidatorActionFilter));
+        opt.EnableEndpointRouting = false;
+    })
+    .AddJsonOptions(
+        opt =>
+            opt.JsonSerializerOptions.DefaultIgnoreCondition = System
+                .Text
+                .Json
+                .Serialization
+                .JsonIgnoreCondition
+                .WhenWritingNull
+    );
 
-
-
-builder.Services.Configure<JsonOptions>(opt => opt.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull);
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton);
+builder.Services.AddValidatorsFromAssemblyContaining<Startup>();
 
 builder.Services.AddAutoMapper(typeof(Program));
 
@@ -127,35 +140,25 @@ builder.Services.AddJwt();
 var app = builder.Build();
 
 app.Services.GetRequiredService<ILoggerFactory>().AddSerilogLogging();
-app.UseRouting();
+
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
-app.UseAuthorization();
 app.UseAuthentication();
-//app.UseMvc();
-
+app.UseMvc();
 
 // Enable middleware to serve generated Swagger as a JSON endpoint
 app.UseSwagger(c => c.RouteTemplate = "swagger/{documentName}/swagger.json");
 
 // Enable middleware to serve swagger-ui assets(HTML, JS, CSS etc.)
 app.UseSwaggerUI(x => x.SwaggerEndpoint("/swagger/v1/swagger.json", "RealWorld API V1"));
+
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ConduitContext>().Database.EnsureCreated();
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<ConduitContext>()
+        .Database.EnsureCreated();
     // use context
 }
-
-var root = app.MapGroup("");
-root.AddEndpointFilterFactory(ValidationActionFilter.ValidationFilterFactory);
-root.RegisterArticleEndpoints().WithOpenApi();
-root.RegisterCommentEndpoints().WithOpenApi();
-root.RegisterFavoritesEndpoint().WithOpenApi();
-root.RegisterFollowerEndpoints().WithOpenApi();
-root.RegisterProfileEndpoints().WithOpenApi();
-root.RegisterTagsEndpoints().WithOpenApi();
-root.RegisterUsersEndpoint().WithOpenApi();
-
 app.Run();
